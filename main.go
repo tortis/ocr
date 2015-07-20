@@ -83,6 +83,7 @@ func loadLetter(fn string) (*letter, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer file.Close()
 
 	// Attempt to decode as PNG
