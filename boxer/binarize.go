@@ -1,9 +1,7 @@
 package boxer
 
-import (
-	"image"
-	"log"
-)
+import "image"
+
 import "image/color"
 
 var (
@@ -23,7 +21,6 @@ func Binarize(img image.Image, blockSize int) *image.Gray {
 
 	// Loop over each block
 	for y := 0; y < img.Bounds().Max.Y; y += blockSize {
-		log.Printf("On row %d\n", y)
 		for x := 0; x < img.Bounds().Max.X; x += blockSize {
 			t := computeBlockThreshold(x, y, blockSize, img)
 			setBlock(x, y, blockSize, t, img, g)
@@ -61,11 +58,9 @@ func computeBlockThreshold(x, y, blockSize int, img image.Image) int {
 	}
 
 	avg /= pixels
-	log.Printf("Avg: %d, Pixels: %d, max: %d, min: %d\n", avg, pixels, max, min)
 
 	// Compute the threshold
 	if (max - min) > MIN_DR {
-		log.Printf("Average for HDR block is: %d\n", avg)
 		return avg + AVG_OFFSET
 	} else {
 		if avg > LOW_DR_THRESH {

@@ -17,6 +17,7 @@ func TestBin(t *testing.T) {
 }
 
 func loadPNG(fname string) image.Image {
+	log.Printf("Loading test image %s\n", fname)
 	// Open the file
 	file, err := os.Open(fname)
 	if err != nil {
@@ -33,6 +34,7 @@ func loadPNG(fname string) image.Image {
 }
 
 func savePNG(fname string, img image.Image) {
+	log.Printf("Saving test image %s\n", fname)
 	file, err := os.Create(fname)
 	if err != nil {
 		log.Fatal(err)
