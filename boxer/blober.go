@@ -2,11 +2,33 @@ package boxer
 
 import (
 	"image"
-	"log"
+	"image/color"
+	"sort"
 )
+
+type Bridge struct {
+	Position       int
+	TotalThickness int
+	Thickest       int
+}
+
+type Bridges []Bridge
+
+func (this Bridges) Len() int {
+	return len(this)
+}
+
+func (this Bridges) Less(i, j int) bool {
+	return this[i].TotalThickness < this[j].TotalThickness
+}
+
+func (this Bridges) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
 
 type Blob struct {
 	Bounds image.Rectangle
+	Img    image.Image
 }
 
 func Blobify(img *image.Gray) []*Blob {
@@ -14,11 +36,11 @@ func Blobify(img *image.Gray) []*Blob {
 	visited := make([]bool, img.Bounds().Max.X*img.Bounds().Max.Y)
 
 	// Scan for first/next blob.
-	x, y := 0, 18
+	x, y := 0, 0
 
 	for {
-		x, y = nextPixel(x, y, img)
-		log.Printf("Found a black pixel at (%d, %d)\n", x, y)
+		x, y = nextPixel(x, y, img, visited)
+		//	log.Printf("Found a black pixel at (%d, %d)\n", x, y)
 		if x < 0 || y < 0 {
 			return blobs
 		}
@@ -26,7 +48,7 @@ func Blobify(img *image.Gray) []*Blob {
 		// Extract blob.
 		b := blobAt(x, y, img, visited)
 		x = b.Bounds.Max.X + 1
-		y = (b.Bounds.Max.Y + b.Bounds.Max.Y) / 2
+		//y = (b.Bounds.Max.Y + b.Bounds.Max.Y) / 2
 		blobs = append(blobs, b)
 	}
 }
@@ -35,10 +57,15 @@ func Blobify(img *image.Gray) []*Blob {
 // Does a top to bottom, left to right scan of img starting at x,y. When a    //
 // black pixel is encountered, the scan stops and the position is returned    //
 ////////////////////////////////////////////////////////////////////////////////
-func nextPixel(x, y int, img *image.Gray) (int, int) {
+func nextPixel(x, y int, img *image.Gray, vis []bool) (int, int) {
+	offset := img.Bounds().Max.X
 	for cy := y; cy < img.Bounds().Max.Y; cy++ {
-		for cx := x; cx < img.Bounds().Max.X; cx++ {
-			if img.GrayAt(cx, cy) == black {
+		start := 0
+		if cy == y {
+			start = x
+		}
+		for cx := start; cx < img.Bounds().Max.X; cx++ {
+			if !vis[cx+cy*offset] && img.GrayAt(cx, cy) == black {
 				return cx, cy
 			}
 		}
@@ -103,5 +130,28 @@ func blobAt(x, y int, img *image.Gray, vis []bool) *Blob {
 		}
 	}
 
-	return &Blob{Bounds: r}
+	return &Blob{Bounds: r, Img: img.SubImage(r)}
+}
+
+func (this *Blob) bridges(avgW float64) []Bridge {
+	var bridges Bridges
+	edgeWidth := int(avgW * 0.7)
+
+	// Run vertical scans over the blob
+	for x := this.Img.Bounds().Min.X + edgeWidth; x <= this.Img.Bounds().Max.X-edgeWidth; x++ {
+		//thickest := 0
+		totalThickness := 0
+		for y := this.Img.Bounds().Min.Y; y <= this.Img.Bounds().Max.Y; y++ {
+			if this.Img.At(x, y).(color.Gray).Y == 0x0 {
+				totalThickness += 1
+			}
+		}
+		bridges = append(bridges, Bridge{
+			Position:       x,
+			TotalThickness: totalThickness,
+		})
+	}
+
+	sort.Sort(bridges)
+	return bridges
 }
