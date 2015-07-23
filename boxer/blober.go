@@ -6,33 +6,40 @@ import (
 	"sort"
 )
 
-type Bridge struct {
-	Position       int
-	TotalThickness int
-	Thickest       int
-}
-
-type Bridges []Bridge
-
-func (this Bridges) Len() int {
-	return len(this)
-}
-
-func (this Bridges) Less(i, j int) bool {
-	return this[i].TotalThickness < this[j].TotalThickness
-}
-
-func (this Bridges) Swap(i, j int) {
-	this[i], this[j] = this[j], this[i]
-}
-
 type Blob struct {
-	Bounds image.Rectangle
-	Img    image.Image
+	Bounds  image.Rectangle
+	Img     image.Image
+	Bridges []Bridge
 }
 
-func Blobify(img *image.Gray) []*Blob {
-	var blobs []*Blob
+type Blobs struct {
+	blobs       []*Blob
+	totalWidth  float64
+	totalHeight float64
+}
+
+func (this *Blobs) addBlob(blob *Blob) {
+	this.blobs = append(this.blobs, blob)
+	this.totalWidth += float64(blob.Bounds.Dx())
+	this.totalHeight += float64(blob.Bounds.Dy())
+}
+
+func (this *Blobs) addAll(blobs Blobs) {
+	for _, b := range blobs.blobs {
+		this.addBlob(b)
+	}
+}
+
+func (this *Blobs) avgWidth() float64 {
+	return this.totalWidth / float64(len(this.blobs))
+}
+
+func (this *Blobs) avgHeight() float64 {
+	return this.totalHeight / float64(len(this.blobs))
+}
+
+func Blobify(img *image.Gray) Blobs {
+	var blobs Blobs
 	visited := make([]bool, img.Bounds().Max.X*img.Bounds().Max.Y)
 
 	// Scan for first/next blob.
@@ -40,16 +47,22 @@ func Blobify(img *image.Gray) []*Blob {
 
 	for {
 		x, y = nextPixel(x, y, img, visited)
-		//	log.Printf("Found a black pixel at (%d, %d)\n", x, y)
 		if x < 0 || y < 0 {
+			for _, b := range blobs.blobs {
+				// Only compute bridges for wide blobs
+				if float64(b.Bounds.Dx()) >= blobs.avgWidth()*1.75 {
+					b.computeBridges(blobs.avgWidth())
+				}
+			}
+
 			return blobs
 		}
 
 		// Extract blob.
 		b := blobAt(x, y, img, visited)
 		x = b.Bounds.Max.X + 1
-		//y = (b.Bounds.Max.Y + b.Bounds.Max.Y) / 2
-		blobs = append(blobs, b)
+
+		blobs.addBlob(b)
 	}
 }
 
@@ -130,10 +143,13 @@ func blobAt(x, y int, img *image.Gray, vis []bool) *Blob {
 		}
 	}
 
+	r.Max.Y += 1
+	r.Max.X += 1
+
 	return &Blob{Bounds: r, Img: img.SubImage(r)}
 }
 
-func (this *Blob) bridges(avgW float64) []Bridge {
+func (this *Blob) computeBridges(avgW float64) {
 	var bridges Bridges
 	edgeWidth := int(avgW * 0.7)
 
@@ -153,5 +169,5 @@ func (this *Blob) bridges(avgW float64) []Bridge {
 	}
 
 	sort.Sort(bridges)
-	return bridges
+	this.Bridges = bridges
 }
