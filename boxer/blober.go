@@ -3,6 +3,7 @@ package boxer
 import (
 	"image"
 	"image/color"
+	"log"
 	"sort"
 )
 
@@ -54,6 +55,7 @@ func Blobify(img *image.Gray) Blobs {
 					b.computeBridges(blobs.avgWidth())
 				}
 			}
+			log.Printf("Returning Blobs with count: %d\n", len(blobs.blobs))
 
 			return blobs
 		}
@@ -61,7 +63,6 @@ func Blobify(img *image.Gray) Blobs {
 		// Extract blob.
 		b := blobAt(x, y, img, visited)
 		x = b.Bounds.Max.X + 1
-
 		blobs.addBlob(b)
 	}
 }

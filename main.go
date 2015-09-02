@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/tortis/nn"
+	"github.com/tortis/nn/activation"
 )
 
 const IMGDIM = 8
@@ -19,8 +20,8 @@ func (this *letter) tofs() []float64 {
 }
 
 func main() {
-	n := nn.NewANN(64, 4, nn.LogisticActivation)
-	n.AddHidden(30, true, nn.LogisticActivation)
+	n := nn.NewANN(64, 4, activation.Logistic)
+	n.AddHidden(30, true, activation.Logistic)
 	n.Wire()
 
 	// Load the training letters
@@ -51,7 +52,7 @@ func main() {
 	// Create the training data and train
 	exin := [][]float64{a.tofs(), b.tofs(), c.tofs(), d.tofs()}
 	exout := [][]float64{{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
-	lerr := n.Backprop(exin, exout, 100000, 0.05, 0.01, 0.9)
+	lerr := n.Backprop(exin, exout, 100000, 0.025, 1, 0.5)
 	fmt.Printf("The network error is: %f\n", lerr)
 
 	// Validation

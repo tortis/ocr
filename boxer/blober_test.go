@@ -8,41 +8,22 @@ import (
 )
 
 func TestBlober(t *testing.T) {
-	img := loadPNG("final.png")
-	g := toGray(img)
-	blobs := Blobify(g)
+	img := loadPNG("test4.png")
+	bin := Binarize(img, 32)
+	blobs := Blobify(bin)
 
-	// Compute the average width
-	avgWidth := 0.0
-	for _, b := range blobs {
-		avgWidth += float64(b.Bounds.Dx()) / float64(len(blobs))
-	}
-	multiW := avgWidth * 1.75
-	log.Printf("Found %d blobs\n", len(blobs))
-	log.Printf("Average blob width: %f, multW: %f\n", avgWidth, multiW)
+	log.Printf("Found %d blobs\n", len(blobs.blobs))
 
 	c := color.Gray{0x99}
-	bc := color.Gray{0x44}
 	lc := color.Gray{0xcc}
-	for _, b := range blobs {
-		if float64(b.Bounds.Dx()) >= multiW {
-			bridges := b.bridges(avgWidth)
-			log.Printf("For big blob at %d, %d: 2 best brides: %d @ %d and %d @ %d\n",
-				b.Bounds.Min.X,
-				b.Bounds.Min.Y,
-				bridges[0].TotalThickness,
-				bridges[0].Position,
-				bridges[1].TotalThickness,
-				bridges[1].Position)
-
-			drawLine(g, bridges[0].Position, b.Bounds.Min.Y, b.Bounds.Dy(), lc)
-			drawRect(g, b.Bounds, bc)
-		} else {
-			drawRect(g, b.Bounds, c)
+	for _, b := range blobs.blobs {
+		if b.Bridges != nil {
+			drawLine(bin, b.Bridges[0].Position, b.Bounds.Min.Y, b.Bounds.Dy(), lc)
 		}
+		drawRect(bin, b.Bounds, c)
 	}
 	log.Println("Saving boxes")
-	savePNG("sblobtest.out.png", g)
+	savePNG("sblobtest.out.png", bin)
 }
 
 func drawLine(img *image.Gray, x, y, h int, c color.Gray) {
